@@ -1,22 +1,23 @@
 # SortBench
 
-A cross-platform C++17 benchmark harness for the BMT317 sorting-algorithm
-assignment. It implements seven sorting algorithms from scratch, generates the
-four required data distributions, measures wall-clock time plus comparison and
-data-movement counts, verifies every result, and writes the aggregated results
+A cross-platform C++17 benchmark harness for my BMT317 - Algotithms class 
+assignment about sorting algorithms.
+
+It implements seven sorting algorithms from scratch, generates the
+four required data distributions, measures time, comparison and
+data-movement counts, verifies every result, and writes the results
 as CSV.
 
-> **Status:** the benchmark core, all seven algorithms, the CSV pipeline, tests,
-> CLI and the table/figure generator are complete.
+## Features
 
-## Assignment coverage
+The table below shows which of the assignment requirements can be found in this project.
 
 | Assignment requirement | Where |
 | --- | --- |
-| 7 algorithms, no library sort | `src/algorithms/*_sort.cpp` |
+| 7 algorithms, implemented by hand | `src/algorithms/*_sort.cpp` |
 | 4 data distributions (random, sorted, reverse, nearly sorted) | `src/core/dataset.cpp` |
 | Sizes 100 … 100 000 | `src/cli/options.hpp` defaults |
-| ≥ 5 repetitions, average reported | `--reps`, `src/bench/runner.cpp` |
+| ≥ 5 repetitions, reports averages of them | `--reps`, `src/bench/runner.cpp` |
 | Warm-up / first-run effects | `--warmup`, results discarded |
 | Time, comparisons, swaps/moves | `core/types.hpp`, CSV columns |
 | Auxiliary memory analysis | `--list`, `aux_memory`, `aux_bytes` |
@@ -26,7 +27,7 @@ as CSV.
 | Tables and plots from a results CSV | `scripts/analyze_results.py`, `assets/plots/` |
 | Shell gap sequence / Quick pivot documented | `--list`, README below |
 
-## Requirements
+## Dependencies
 
 * A C++17 compiler: GCC ≥ 9, Clang ≥ 10, MSVC 2019+ (or MinGW-w64)
 * Meson ≥ 1.1 and Ninja
@@ -106,18 +107,8 @@ mkdir -p results
 Algorithms and ids: `selection`, `insertion`, `bubble`, `shell`, `quick`,
 `merge`, `heap`.
 
-The full default matrix is 7 algorithms × 4 distributions × 6 sizes × 5
-repetitions = 840 measured runs plus warm-ups. The O(n²) algorithms dominate the
-runtime at large n; use `--quadratic-limit` and document the choice, as the
-assignment explicitly allows.
-
-Progress lines on stderr count **dataset cases**, i.e. one line per
-(distribution, size) pair: `[4/24] sorted n=10000 (7 algorithms x 5 reps)`.
-Each finished case produces one CSV row per algorithm, so the default matrix has
-24 progress lines and 168 CSV rows.
-
-Exit codes: `0` success, `1` nothing to run, `2` invalid input / I/O error,
-`3` a result failed correctness verification.
+Running the benchmark prints each of the dataset cases and the algorithms the user chose to test (all by default).
+So if there are 24 different cases, we will have 24 x (algorithm count) results.
 
 ## Output CSV
 
@@ -151,62 +142,17 @@ full file list and regeneration details.
 
 ## Measurement methodology
 
-**Datasets.** Every case uses a deterministic generator:
+More information about the measurement strategy can be found in the report.
 
-* *random*: uniform values in `[0, n)` from `std::mt19937_64`;
-* *sorted*: `0, 1, …, n-1`;
-* *reverse*: `n-1, …, 1, 0`;
-* *nearly_sorted*: ascending, then `n/10` random pair swaps.
+Each dataset case generates a seperate dataset. There are 4 distributions I implemented to be used here:
 
-Each repetition derives its own seed (`seed → splitmix64(distribution, n, rep)`),
-so runs are reproducible from `--seed` but different repetitions are not
-identical clones. Results are averaged over repetitions.
+- `random`: random uniform distribution using `std::mt19937` engine.
+- `sorted`: from 0 to n-1.
+- `reversesorted`: from n-1 to 0.
+- `nearlysorted`: we start with a sorted list and do n/10 moves to shift some values around.
 
-**Fairness.** Within a repetition the base dataset is generated once; each
-algorithm receives a fresh copy, and the copy is made *outside* the timed
-region. No algorithm ever sorts another algorithm's output.
-
-**Timing.** Only the `algorithm.sort(data, ctx)` call is inside
-`std::chrono::steady_clock`. Dataset generation, validation, and the scratch
-buffer allocation are outside. The scratch buffer (`SortContext::buffer`) is
-pre-sized before timing so allocator noise does not distort Merge Sort.
-
-**Warm-up.** `--warmup 1` runs each algorithm once per case on the same
-distribution and discards the result; this reduces first-run page-fault and
-cache effects.
-
-**Counters.**
-
-* `comparisons` — one increment per element-to-element comparison.
-* `moves` — one increment per element assignment; a swap counts as 3 moves
-  (the textbook convention). This is the "swap / data movement" column.
-
-Counters are accumulated by the algorithms themselves through the `Metrics`
-helpers, so they are exact (not sampled). All repetitions of a fixed dataset
-size produce identical counter values unless the data generator changes; the
-CSV stores the average so the format stays uniform.
-
-**Memory.** Auxiliary memory is *not* measured at runtime (portable RSS
-measurement is unreliable). Each algorithm declares its auxiliary-memory class,
-and `aux_bytes` gives a documented estimate:
-
-* Selection / Insertion / Bubble / Shell / Heap — `O(1)`, 0 bytes;
-* Merge — one `n`-element scratch buffer (`n * sizeof(Value)`);
-* Quick — expected `O(log n)` recursion stack (smaller-part recursion).
-
-Report these as analytic values and explain them; do not present `aux_bytes` as
-an OS measurement.
-
-**Correctness.** Every measured run is validated with `is_sorted()` (the function
-required by section 14) and by comparing against a reference sort of the same
-input produced by the project's own merge sort. A mismatch is printed on stderr
-and marks the row `verified = 0`; the process then exits with code 3. The
-reference sort is never timed.
-
-**Caveats when interpreting the results.** Wall-clock time includes cache and
-memory effects; no CPU pinning or frequency scaling control is applied. Run on
-an otherwise idle machine, use a release build, and prefer the median-spread
-information (`stddev`, `min`, `max`) when discussing small differences.
+For improving measurement accuracy, as it is required in the assignment, each dataset case runs 6 times by default (1 warmup + 5 for measurement). 
+I used std::steady_timer for measurements related to time.
 
 ## Implementation notes
 
@@ -216,13 +162,11 @@ information (`stddev`, `min`, `max`) when discussing small differences.
 | Insertion | Shifting, early exit on sorted input; stable. |
 | Bubble | Early-exit flag; stable. |
 | Shell | Gap sequence `n/2, n/4, …, 1` (original Shell sequence). |
-| Quick | **Median-of-three** pivot (first/middle/last), Lomuto partition, hand-rolled tail recursion on the larger partition so the stack is `O(log n)`. |
+| Quick | **Median-of-three** pivot (first/middle/last), Lomuto partition. |
 | Merge | Top-down, single shared scratch buffer, stable. |
-| Heap | Binary max-heap: bottom-up build, then extract-max. In-place. |
+| Heap | Uses a max heap. In-place. |
 
-All algorithms are hand-written; no `std::sort`, `std::stable_sort`,
-`std::partial_sort`, `qsort`, or library heap helpers are used. `std::swap` is
-only used by the dataset generator, not by the algorithms.
+I have hand-written all of the sorting algorithms to satisfy the requirements of my assignment.
 
 ## Project layout
 
@@ -276,35 +220,6 @@ The suite covers:
   with values), plan resolution/deduplication and the quadratic limit;
 * an end-to-end 4-case benchmark run with CSV row invariants.
 
-## Extending
+## License
 
-**Add an algorithm:** write `src/algorithms/foo_sort.cpp` implementing
-`void foo_sort(std::vector<Value>&, SortContext&)`; declare it in
-`algorithm.hpp`; add it to the registry and the source list in
-`src/meson.build`; add a case to the test matrix (the generic loop picks it up
-automatically).
-
-**Bonus 1 — Quick Sort pivot comparison:** the pivot choice is isolated in
-`quick_sort_range`. Add a second entry (e.g. `quick_first`) that uses the first
-element, or select the pivot from `SortContext::rng_state` for a randomized
-variant, then run `--algos quick,quick_first`.
-
-**Bonus 2 — Shell gap comparison:** make the gap sequence a parameter and
-register `shell_knuth` (`1, 4, 13, 40, …`) alongside the original sequence;
-compare with `--algos shell,shell_knuth`.
-
-**Bonus 3+** (large n, parallel merge, visualization): not implemented in the
-skeleton; the runner and metric types are ready for a parallel variant.
-
-## Next steps
-
-1. If per-run variance is needed rather than aggregates, add a `--raw PATH`
-   option that writes one row per repetition.
-2. Explore the optional bonus items in [Extending](#extending).
-
-## Notes
-
-* The project deliberately keeps all identifiers, column names and output in
-  ASCII so CSV files and console output behave identically on Windows and POSIX.
-* Values are `int32`, so dataset sizes must stay below 2³¹ (the assignment uses
-  at most 100 000; `--sizes` is capped at 2³⁰).
+Released under the MIT License. See [LICENSE](LICENSE) for the full text.

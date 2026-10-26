@@ -1,6 +1,8 @@
 project(
   'sortbench', 'cpp',
   version: '0.1.0',
+  license: 'MIT',
+  license_files: 'LICENSE',
   meson_version: '>=1.1.0',
   default_options: [
     'cpp_std=c++17',
