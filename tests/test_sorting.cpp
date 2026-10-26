@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <initializer_list>
 #include <iostream>
 #include <random>
 #include <string>
@@ -6,6 +7,7 @@
 #include <vector>
 
 #include "algorithms/algorithm.hpp"
+#include "cli/options.hpp"
 #include "core/check.hpp"
 #include "core/dataset.hpp"
 
@@ -278,6 +280,69 @@ void test_aux_memory_estimates() {
     }
 }
 
+sortbench::ParseResult parse(std::initializer_list<std::string_view> arguments) {
+    std::vector<std::string> storage{"sortbench"};
+    for (std::string_view argument : arguments) {
+        storage.emplace_back(argument);
+    }
+    std::vector<char*> argv;
+    argv.reserve(storage.size());
+    for (std::string& argument : storage) {
+        argv.push_back(argument.data());
+    }
+    return sortbench::parse_command_line(static_cast<int>(argv.size()), argv.data());
+}
+
+void test_command_line_parsing() {
+    {
+        const sortbench::ParseResult result = parse({});
+        expect(result.status == sortbench::ParseStatus::Ok, "no arguments parses successfully");
+        expect(result.options.repetitions == 5, "default repetitions is 5");
+        expect(result.options.sizes.size() == 6, "default sizes follow the assignment");
+        expect(result.options.output == "results.csv", "default output is results.csv");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--help"});
+        expect(result.status == sortbench::ParseStatus::HelpRequested, "--help requests help");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--list"});
+        expect(result.status == sortbench::ParseStatus::ListRequested, "--list requests listing");
+    }
+    {
+        const sortbench::ParseResult result =
+            parse({"--algos", "quick,merge", "--dist=reverse", "--sizes", "10,20",
+                   "--reps", "2", "--seed", "7", "--out", "-"});
+        expect(result.status == sortbench::ParseStatus::Ok, "full option set parses");
+        expect(result.options.algorithms.size() == 2, "algorithm list is split");
+        expect(result.options.distributions.size() == 1 &&
+                   result.options.distributions[0] == "reverse",
+               "inline --dist=value form is supported");
+        expect(result.options.sizes.size() == 2 &&
+                   result.options.sizes[0] == 10 && result.options.sizes[1] == 20,
+               "sizes list is parsed");
+        expect(result.options.repetitions == 2 && result.options.seed == 7,
+               "numeric options are parsed");
+        expect(result.options.output == "-", "stdout output is accepted");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--reps", "0"});
+        expect(result.status == sortbench::ParseStatus::Error, "--reps 0 is rejected");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--sizes", "0"});
+        expect(result.status == sortbench::ParseStatus::Error, "--sizes 0 is rejected");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--nope"});
+        expect(result.status == sortbench::ParseStatus::Error, "unknown option is rejected");
+    }
+    {
+        const sortbench::ParseResult result = parse({"--quiet=1"});
+        expect(result.status == sortbench::ParseStatus::Error, "flag with a value is rejected");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -289,6 +354,7 @@ int main() {
     test_large_sorted_input();
     test_measurement_counters();
     test_aux_memory_estimates();
+    test_command_line_parsing();
 
     if (g_failures == 0) {
         std::cout << "All " << g_checks << " checks passed.\n";
