@@ -33,9 +33,15 @@ struct Plan {
     std::vector<const Algorithm*> algorithms;
     std::vector<Distribution> distributions;
     std::vector<std::size_t> sizes;
-    std::size_t total_cases = 0; ///< cases that will actually run
 
-    bool empty() const noexcept { return total_cases == 0; }
+    /// Number of (distribution, size) pairs that will actually run, i.e. that
+    /// have at least one algorithm not skipped by --quadratic-limit.
+    std::size_t dataset_cases = 0;
+
+    /// Number of CSV rows: dataset_cases x algorithms (minus skipped cases).
+    std::size_t total_rows = 0;
+
+    bool empty() const noexcept { return total_rows == 0; }
 };
 
 /// Resolves names from Options into concrete algorithms/distributions, removes

@@ -64,8 +64,9 @@ void print_plan(std::ostream& out, const sortbench::Plan& plan, const sortbench:
                 : "skip O(n^2) algorithms above n=" + std::to_string(options.quadratic_limit))
         << "\n"
         << "  output       : " << options.output << "\n"
-        << "  dataset cases: " << plan.total_cases << "\n"
-        << "  measured runs: " << plan.total_cases * options.repetitions << "\n\n";
+        << "  dataset cases: " << plan.dataset_cases << "\n"
+        << "  result rows  : " << plan.total_rows << "\n"
+        << "  measured runs: " << plan.total_rows * options.repetitions << "\n\n";
 }
 
 } // namespace

@@ -192,14 +192,21 @@ Plan build_plan(const Options& options) {
     }
 
     std::size_t cases_per_distribution = 0;
+    std::size_t rows_per_distribution = 0;
     for (std::size_t size : plan.sizes) {
+        std::size_t active = 0;
         for (const Algorithm* algorithm : plan.algorithms) {
             if (!is_skipped(*algorithm, size, options)) {
-                ++cases_per_distribution;
+                ++active;
             }
         }
+        if (active > 0) {
+            ++cases_per_distribution;
+        }
+        rows_per_distribution += active;
     }
-    plan.total_cases = cases_per_distribution * plan.distributions.size();
+    plan.dataset_cases = cases_per_distribution * plan.distributions.size();
+    plan.total_rows = rows_per_distribution * plan.distributions.size();
 
     return plan;
 }
@@ -208,7 +215,7 @@ std::vector<ResultRow> run_benchmark(const Plan& plan,
                                      const Options& options,
                                      std::ostream& progress) {
     std::vector<ResultRow> rows;
-    rows.reserve(plan.total_cases);
+    rows.reserve(plan.total_rows);
     std::size_t case_index = 0;
 
     for (Distribution distribution : plan.distributions) {
@@ -233,7 +240,7 @@ std::vector<ResultRow> run_benchmark(const Plan& plan,
 
             ++case_index;
             if (!options.quiet) {
-                progress << "[" << case_index << "/" << plan.total_cases << "] "
+                progress << "[" << case_index << "/" << plan.dataset_cases << "] "
                          << to_string(distribution) << " n=" << n << " (" << active.size()
                          << " algorithms x " << options.repetitions << " reps)\n";
             }

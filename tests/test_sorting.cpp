@@ -1,12 +1,14 @@
-#include <cstddef>
+#include <cstdlib>
 #include <initializer_list>
 #include <iostream>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "algorithms/algorithm.hpp"
+#include "bench/runner.hpp"
 #include "cli/options.hpp"
 #include "core/check.hpp"
 #include "core/dataset.hpp"
@@ -15,6 +17,7 @@ namespace {
 
 using sortbench::Algorithm;
 using sortbench::Distribution;
+using sortbench::Options;
 using sortbench::SortContext;
 using sortbench::Value;
 
@@ -343,6 +346,100 @@ void test_command_line_parsing() {
     }
 }
 
+void test_plan_building() {
+    {
+        Options options;
+        const sortbench::Plan plan = sortbench::build_plan(options);
+        expect(plan.algorithms.size() == sortbench::all_algorithms().size(),
+               "all algorithms expand to the full registry");
+        expect(plan.distributions.size() == 4, "all distributions expand to four entries");
+        expect(plan.dataset_cases == 4 * options.sizes.size(),
+               "plan dataset case count is distributions x sizes");
+        expect(plan.total_rows == plan.algorithms.size() * 4 * options.sizes.size(),
+               "plan row count matches the cartesian product");
+    }
+    {
+        Options options;
+        options.sizes = {100, 100};
+        const sortbench::Plan plan = sortbench::build_plan(options);
+        expect(plan.sizes.size() == 1, "duplicate sizes are removed");
+    }
+    {
+        Options options;
+        options.algorithms = {"quick", "quick"};
+        const sortbench::Plan plan = sortbench::build_plan(options);
+        expect(plan.algorithms.size() == 1, "duplicate algorithms are removed");
+    }
+    {
+        Options options;
+        options.quadratic_limit = 1000;
+        const sortbench::Plan plan = sortbench::build_plan(options);
+        std::size_t expected = 0;
+        for (std::size_t n : options.sizes) {
+            for (const Algorithm& algorithm : sortbench::all_algorithms()) {
+                if (algorithm.average_complexity != sortbench::Complexity::Quadratic || n <= 1000) {
+                    ++expected;
+                }
+            }
+        }
+        expect(plan.total_rows == expected * 4,
+               "plan honours the quadratic limit when counting rows");
+        expect(plan.dataset_cases == options.sizes.size() * 4,
+               "every dataset case still runs when only O(n^2) algorithms are skipped");
+    }
+    {
+        Options options;
+        options.algorithms = {"does-not-exist"};
+        bool threw = false;
+        try {
+            static_cast<void>(sortbench::build_plan(options));
+        } catch (const std::runtime_error&) {
+            threw = true;
+        }
+        expect(threw, "unknown algorithm makes build_plan throw");
+    }
+    {
+        Options options;
+        options.distributions = {"sideways"};
+        bool threw = false;
+        try {
+            static_cast<void>(sortbench::build_plan(options));
+        } catch (const std::runtime_error&) {
+            threw = true;
+        }
+        expect(threw, "unknown distribution makes build_plan throw");
+    }
+}
+
+void test_end_to_end_small_run() {
+    Options options;
+    options.algorithms = {"quick", "merge"};
+    options.distributions = {"random", "sorted"};
+    options.sizes = {64};
+    options.repetitions = 2;
+    options.warmup_runs = 1;
+    options.quiet = true;
+
+    const sortbench::Plan plan = sortbench::build_plan(options);
+    expect(plan.dataset_cases == 2, "small run has two dataset cases");
+    expect(plan.total_rows == 4, "small run produces four result rows");
+
+    std::vector<sortbench::ResultRow> rows =
+        sortbench::run_benchmark(plan, options, std::cerr);
+    expect(rows.size() == 4, "small run produces one row per case");
+    expect(sortbench::count_failures(rows) == 0, "small run produces correct results");
+
+    for (const sortbench::ResultRow& row : rows) {
+        expect(row.repetitions == 2, "row records the number of measured repetitions");
+        expect(row.verified, "row is marked as verified");
+        expect(row.mean_ms >= 0.0 && row.min_ms <= row.max_ms, "timing values are consistent");
+        expect(row.mean_comparisons > 0.0, "comparisons are counted");
+        expect(row.aux_bytes == sortbench::aux_bytes_estimate(
+                                   *sortbench::find_algorithm(row.algorithm), row.n),
+               "row carries the analytic auxiliary memory estimate");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -355,6 +452,8 @@ int main() {
     test_measurement_counters();
     test_aux_memory_estimates();
     test_command_line_parsing();
+    test_plan_building();
+    test_end_to_end_small_run();
 
     if (g_failures == 0) {
         std::cout << "All " << g_checks << " checks passed.\n";
