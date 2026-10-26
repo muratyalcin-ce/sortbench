@@ -1,0 +1,11 @@
+# Meson / Ninja build trees
+/build*/
+/build-*/
+/.cache/
+compile_commands.json
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
