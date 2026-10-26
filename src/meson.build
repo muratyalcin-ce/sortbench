@@ -12,6 +12,8 @@ sortbench_sources = files(
   'algorithms/quick_sort.cpp',
   'algorithms/merge_sort.cpp',
   'algorithms/heap_sort.cpp',
+  'bench/runner.cpp',
+  'io/csv_writer.cpp',
 )
 
 sortbench_core = static_library(
