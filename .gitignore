@@ -9,3 +9,19 @@ compile_commands.json
 .idea/
 *.swp
 .DS_Store
+
+# Generated assets (raw CSV results are deliverables, so they are NOT ignored)
+/assets/report
+
+# Python analysis
+__pycache__/
+*.pyc
+
+# LaTeX build files (the final report PDF stays tracked)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
