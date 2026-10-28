@@ -4,9 +4,7 @@
 
 namespace sortbench {
 
-/// Selection Sort: repeatedly select the minimum of the unsorted suffix and
-/// move it to the front. The number of comparisons is always n(n-1)/2, which
-/// makes it a useful lower bound for comparison-count measurements.
+/// Finds the minimum and moves it to the front 
 void selection_sort(std::vector<Value>& data, SortContext& ctx) {
     Metrics& metrics = ctx.metrics;
     const std::size_t n = data.size();

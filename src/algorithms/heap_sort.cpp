@@ -5,8 +5,7 @@
 namespace sortbench {
 namespace {
 
-/// Restores the max-heap property for the subtree rooted at `root`, where the
-/// heap occupies data[0, count).
+/// Heapify/Sift-Down operation, this restores the max-heap property of our vector
 void sift_down(std::vector<Value>& data, std::size_t root, std::size_t count, Metrics& metrics) {
     for (;;) {
         const std::size_t left = 2 * root + 1;
@@ -29,18 +28,18 @@ void sift_down(std::vector<Value>& data, std::size_t root, std::size_t count, Me
 
 } // namespace
 
-/// Heap Sort: build a max-heap in O(n), then repeatedly swap the maximum to the
-/// end and shrink the heap. Fully in-place.
+/// Heap sort builds a max-heap in O(n), then repeatedly swaps the maximum to the
+/// end and shrinks the heap. Fully an in-place algorithm.
 void heap_sort(std::vector<Value>& data, SortContext& ctx) {
     Metrics& metrics = ctx.metrics;
     const std::size_t n = data.size();
 
-    // Build phase: sift down every internal node, bottom-up.
+    // Heapify	
     for (std::size_t i = n / 2; i-- > 0;) {
         sift_down(data, i, n, metrics);
     }
 
-    // Extract phase: move the current maximum behind the heap.
+    // Extract
     for (std::size_t end = n; end-- > 1;) {
         swap_values(data[0], data[end], metrics);
         sift_down(data, 0, end, metrics);

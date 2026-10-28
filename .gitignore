@@ -10,9 +10,6 @@ compile_commands.json
 *.swp
 .DS_Store
 
-# Generated assets (raw CSV results are deliverables, so they are NOT ignored)
-/assets/report
-
 # Python analysis
 __pycache__/
 *.pyc
@@ -25,3 +22,10 @@ __pycache__/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# AUCTeX, the assignment and other temporary/generated files
+/assets/report/auto/
+/assets/report/BMT317_*.pdf
+/assets/report/main-*.png
+*.lof
+*.lot

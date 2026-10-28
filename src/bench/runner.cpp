@@ -18,7 +18,7 @@
 namespace sortbench {
 namespace {
 
-/// splitmix64 finaliser; used to derive independent, reproducible dataset seeds.
+/// This function is to aid in generation of seeds.
 std::uint64_t mix64(std::uint64_t x) noexcept {
     x += 0x9E3779B97F4A7C15ull;
     x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ull;
@@ -171,11 +171,12 @@ Plan build_plan(const Options& options) {
         append_unique(plan.distributions, *distribution);
     }
 
-    // Sizes, preserving user order but removing duplicates.
+    
     for (std::size_t size : options.sizes) {
         if (size == 0) {
             throw std::runtime_error("dataset sizes must be positive");
         }
+		// Remove duplicate entries.
         if (std::find(plan.sizes.begin(), plan.sizes.end(), size) == plan.sizes.end()) {
             plan.sizes.push_back(size);
         }
@@ -245,7 +246,7 @@ std::vector<ResultRow> run_benchmark(const Plan& plan,
                          << " algorithms x " << options.repetitions << " reps)\n";
             }
 
-            // Warm-up: same code path and same distribution, results discarded.
+			// This is the warm-up, the results of this round are discarded.
             if (options.warmup_runs > 0) {
                 const std::vector<Value> warmup_base =
                     make_dataset(distribution, n, dataset_seed(options.seed, distribution, n, 0));
@@ -262,7 +263,7 @@ std::vector<ResultRow> run_benchmark(const Plan& plan,
             std::vector<Accumulator> accumulators(active.size());
 
             for (unsigned repetition = 0; repetition < options.repetitions; ++repetition) {
-                // One dataset per repetition, shared by every algorithm.
+                // Every algorithm shares the same dataset.
                 const std::vector<Value> base = make_dataset(
                     distribution, n, dataset_seed(options.seed, distribution, n, repetition));
 

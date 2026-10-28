@@ -4,11 +4,7 @@
 
 namespace sortbench {
 
-/// Shell Sort with the original Shell gap sequence: n/2, n/4, ..., 1.
-///
-/// Each gap is a gap-insertion sort: elements gap positions apart are inserted
-/// into order. The sequence is declared in the README and in the algorithm
-/// registry note so it can be quoted in the report.
+/// n/2, n/4, n/8... sequence
 void shell_sort(std::vector<Value>& data, SortContext& ctx) {
     Metrics& metrics = ctx.metrics;
     const std::size_t n = data.size();

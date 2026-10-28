@@ -519,7 +519,7 @@ def render_environment_table(
         ("İşletim sistemi", detect_os(), True),
         ("Derleyici", compiler, True),
         ("Dil standardı", "C++17", True),
-        ("Derleme sistemi", f"Meson {detect_meson()} + Ninja (optimize ikili)", True),
+        ("Derleme sistemi", f"Meson {detect_meson()} + Ninja (release modunda derlenmiş)", True),
         ("IDE / çalıştırma ortamı", "Komut satırı", True),
         ("Veri boyutları", ", ".join(map(str, sizes)), True),
         (

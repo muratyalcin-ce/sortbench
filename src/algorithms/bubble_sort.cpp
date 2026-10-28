@@ -3,9 +3,10 @@
 #include <cstddef>
 
 namespace sortbench {
-
-/// Bubble Sort: swaps adjacent out-of-order pairs. The early-exit flag turns
-/// the best case (already sorted input) into a single O(n) pass.
+ 
+/// Swaps out of order elements next to each other. Also the
+/// short circuit route ensures that an early finished sort does not
+/// keep running.
 void bubble_sort(std::vector<Value>& data, SortContext& ctx) {
     Metrics& metrics = ctx.metrics;
 

@@ -4,9 +4,6 @@
 
 namespace sortbench {
 
-/// Insertion Sort: grows a sorted prefix by inserting the next element into its
-/// place. Shifting instead of swapping keeps the move count low and makes the
-/// algorithm linear on already sorted input.
 void insertion_sort(std::vector<Value>& data, SortContext& ctx) {
     Metrics& metrics = ctx.metrics;
     const std::size_t n = data.size();
